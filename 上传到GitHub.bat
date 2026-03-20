@@ -9,7 +9,7 @@ echo ========================================
 echo.
 
 echo [Step 1] Enter your Personal Access Token:
-echo (Token starts with ghp_)
+echo (Get token from: https://github.com/settings/tokens)
 set /p TOKEN="Token: "
 
 echo.
@@ -22,9 +22,10 @@ echo [Step 3] Adding all files...
 git add .
 
 echo [Step 4] Committing...
-git commit -m "Initial commit: Paper Polish Tool"
+git commit -m "feat: optimize backend with caching, rate limiting, retry mechanism; add Docker deployment"
 
 echo [Step 5] Setting remote...
+git remote remove origin 2>nul
 git remote add origin https://%TOKEN%@github.com/cccyyywqq/paper-polish.git
 git branch -M main
 
@@ -43,7 +44,10 @@ if %errorlevel% equ 0 (
 ) else (
     echo.
     echo [ERROR] Push failed!
-    echo Please check your token and network.
+    echo Please check:
+    echo 1. Token is valid
+    echo 2. Repository exists on GitHub
+    echo 3. Network connection is stable
 )
 
 echo.

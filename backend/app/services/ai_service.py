@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 from zhipuai import ZhipuAI
 from ..config import get_settings
+from ..utils import logger, retry, cached
 
 settings = get_settings()
 
@@ -19,12 +20,26 @@ class AIService(ABC):
     async def get_suggestions(self, text: str) -> List[str]:
         pass
 
+    @abstractmethod
+    async def batch_polish(self, texts: List[str], style: str = "academic") -> List[str]:
+        pass
+
 
 class ZhipuAIService(AIService):
     def __init__(self):
+        if not settings.zhipuai_api_key:
+            raise ValueError("ZHIPUAI_API_KEY is not configured")
         self.client = ZhipuAI(api_key=settings.zhipuai_api_key)
         self.model = settings.zhipuai_model
 
+    def _select_model(self, text: str) -> str:
+        text_length = len(text)
+        if text_length > 5000:
+            return "glm-4"
+        return self.model
+
+    @retry(max_retries=3, delay=1.0)
+    @cached(ttl=3600, key_prefix="polish")
     async def polish_text(self, text: str, style: str = "academic") -> str:
         prompts = {
             "academic": "你是一位专业的学术论文编辑。请将以下文本润色为严谨的学术论文风格，保持原意但提升表达质量和专业性：",
@@ -32,8 +47,11 @@ class ZhipuAIService(AIService):
             "formal": "你是一位学术写作专家。请将以下文本润色为正式的学术风格，使用专业术语和规范表达：",
         }
 
+        model = self._select_model(text)
+        logger.info(f"Polishing text with model: {model}, style: {style}")
+
         response = self.client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=[
                 {"role": "system", "content": prompts.get(style, prompts["academic"])},
                 {"role": "user", "content": text},
@@ -41,11 +59,19 @@ class ZhipuAIService(AIService):
             temperature=0.7,
             max_tokens=4000,
         )
-        return response.choices[0].message.content
 
+        result = response.choices[0].message.content
+        logger.info(f"Polish completed, output length: {len(result)}")
+        return result
+
+    @retry(max_retries=3, delay=1.0)
+    @cached(ttl=3600, key_prefix="anti_ai")
     async def anti_ai_detection(self, text: str) -> str:
+        model = self._select_model(text)
+        logger.info(f"Anti-AI processing with model: {model}")
+
         response = self.client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=[
                 {
                     "role": "system",
@@ -64,9 +90,15 @@ class ZhipuAIService(AIService):
             temperature=0.8,
             max_tokens=4000,
         )
-        return response.choices[0].message.content
 
+        result = response.choices[0].message.content
+        logger.info(f"Anti-AI completed, output length: {len(result)}")
+        return result
+
+    @retry(max_retries=3, delay=1.0)
     async def get_suggestions(self, text: str) -> List[str]:
+        logger.info("Getting suggestions")
+
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -79,9 +111,18 @@ class ZhipuAIService(AIService):
             temperature=0.5,
             max_tokens=1000,
         )
+
         content = response.choices[0].message.content
         suggestions = [s.strip() for s in content.split("\n") if s.strip()]
         return suggestions[:5]
+
+    async def batch_polish(self, texts: List[str], style: str = "academic") -> List[str]:
+        logger.info(f"Batch polishing {len(texts)} texts")
+        results = []
+        for text in texts:
+            result = await self.polish_text(text, style)
+            results.append(result)
+        return results
 
 
 class LocalModelService(AIService):
@@ -89,22 +130,24 @@ class LocalModelService(AIService):
         self.available = False
 
     async def polish_text(self, text: str, style: str = "academic") -> str:
-        if not self.available:
-            return text
+        logger.warning("Local model not available, returning original text")
         return text
 
     async def anti_ai_detection(self, text: str) -> str:
-        if not self.available:
-            return text
+        logger.warning("Local model not available, returning original text")
         return text
 
     async def get_suggestions(self, text: str) -> List[str]:
         return ["本地模型暂未配置"]
 
+    async def batch_polish(self, texts: List[str], style: str = "academic") -> List[str]:
+        return texts
+
 
 class AIServiceFactory:
     @staticmethod
     def create_service(provider: str = "zhipuai") -> AIService:
+        logger.info(f"Creating AI service: {provider}")
         if provider == "zhipuai":
             return ZhipuAIService()
         elif provider == "local":
