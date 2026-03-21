@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="论文润色工具",
     description="AI驱动的论文润色与去AI化处理工具",
-    version="1.1.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 

@@ -1,4 +1,4 @@
-# 论文润色工具 (Paper Polish Tool)
+# 论文润色工具 (Paper Polish Tool) v2.0.0
 
 AI驱动的论文润色与去AI化处理工具，基于智谱GLM-4大模型。
 
@@ -6,8 +6,10 @@ AI驱动的论文润色与去AI化处理工具，基于智谱GLM-4大模型。
 
 - **论文润色**：支持学术严谨、自然流畅、正式规范三种风格
 - **去AI化处理**：降低AI检测风险，提升文本自然度
-- **实时进度**：处理过程可视化，状态一目了然
-- **结果分析**：自然度评分、AI检测风险评估、改进建议
+- **文件上传**：支持 .docx / .pdf / .txt 文件
+- **用户系统**：登录注册、历史记录
+- **实时进度**：SSE 真实进度推送
+- **对比视图**：并排对比和段落对比两种模式
 
 ## 技术栈
 
@@ -15,27 +17,23 @@ AI驱动的论文润色与去AI化处理工具，基于智谱GLM-4大模型。
 - Python 3.10+ / FastAPI
 - SQLAlchemy / SQLite
 - 智谱AI SDK (zhipuai)
+- SSE (Server-Sent Events)
 
 ### 前端
 - React 18 + TypeScript
 - Tailwind CSS
-- Vite
-
-### 部署
-- Docker + Docker Compose
-- Nginx 反向代理
+- Vite + Axios
 
 ## 快速开始
 
-### 方式一：本地开发
-
-1. 配置API密钥
-```bash
-# 编辑 backend/.env
-ZHIPUAI_API_KEY=你的API密钥
+### 1. 配置API密钥
+编辑 `backend/.env`：
+```
+ZHIPUAI_API_KEY=你的智谱API密钥
+SECRET_KEY=你的应用密钥
 ```
 
-2. 启动服务
+### 2. 启动服务
 ```bash
 # Windows
 双击 启动服务.bat
@@ -45,36 +43,44 @@ cd backend && pip install -r requirements.txt && python -m uvicorn app.main:app 
 cd frontend && npm install && npm run dev
 ```
 
-3. 访问 http://localhost:3000
+### 3. 访问应用
+- 前端：http://localhost:3000
+- API文档：http://localhost:8000/docs
 
-### 方式二：Docker部署
+## API 接口
 
-```bash
-docker-compose up -d
-```
+### 润色接口
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/polish/text | 润色文本 |
+| POST | /api/polish/text-with-progress | 润色文本 (SSE进度) |
+| POST | /api/polish/batch | 批量润色 |
 
-访问 http://localhost
+### 去AI化接口
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/anti-ai/process | 去AI化处理 |
+| POST | /api/anti-ai/analyze | 分析AI风险 |
 
-## 项目优化
+### 用户接口
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/auth/register | 用户注册 |
+| POST | /api/auth/login | 用户登录 |
+| GET | /api/auth/me | 获取当前用户 |
+| GET | /api/auth/history | 获取历史记录 |
+| POST | /api/auth/history | 保存历史记录 |
 
-### 后端优化
-- **异步处理**：所有AI调用和数据库操作均为异步
-- **请求限流**：IP级别限流，防止滥用
-- **LRU缓存**：缓存重复请求，减少API调用
-- **自动重试**：AI调用失败自动重试3次
-- **日志监控**：详细日志记录，支持性能追踪
-- **智能模型选择**：根据文本长度自动选择模型
+### 文件接口
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/upload/file | 上传文件 |
 
-### 前端优化
-- **错误重试**：网络错误自动重试
-- **进度显示**：实时处理进度和状态
-- **类型安全**：完整的TypeScript类型定义
-- **响应式UI**：适配多种屏幕尺寸
-
-### 安全优化
-- **API Key保护**：仅在后端环境变量中配置
-- **限流中间件**：防止API滥用
-- **错误处理**：统一错误响应格式
+### 进度接口
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/progress/stream/{task_id} | SSE进度流 |
+| GET | /api/progress/status/{task_id} | 查询进度状态 |
 
 ## 项目结构
 
@@ -87,55 +93,35 @@ paper-polish/
 │   │   ├── database.py      # 数据库配置
 │   │   ├── models/          # 数据模型
 │   │   ├── routers/         # API路由
-│   │   ├── schemas/         # 数据结构
+│   │   │   ├── polish.py    # 润色接口
+│   │   │   ├── anti_ai.py   # 去AI化接口
+│   │   │   ├── auth.py      # 用户认证
+│   │   │   ├── upload.py    # 文件上传
+│   │   │   └── progress.py  # SSE进度
+│   │   ├── schemas/         # Pydantic模型
 │   │   ├── services/        # 业务逻辑
 │   │   └── utils/           # 工具类
-│   │       ├── cache.py     # LRU缓存
-│   │       ├── limiter.py   # 请求限流
-│   │       ├── logger.py    # 日志管理
-│   │       └── retry.py     # 重试装饰器
-│   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
 │   │   ├── components/      # React组件
-│   │   ├── hooks/           # 自定义Hooks
 │   │   ├── services/        # API调用
 │   │   └── App.tsx
-│   ├── Dockerfile
 │   └── package.json
-├── docker-compose.yml       # Docker编排
-├── nginx/                   # Nginx配置
-├── 启动服务.bat              # 本地启动
-└── 上传到GitHub.bat          # Git上传
+├── docker-compose.yml
+├── 启动服务.bat
+└── 上传到GitHub.bat
 ```
 
-## API接口
+## 验收清单
 
-### 润色接口
-```
-POST /api/polish/text
-{
-  "text": "需要润色的文本",
-  "style": "academic|natural|formal",
-  "ai_provider": "zhipuai"
-}
-```
-
-### 去AI化接口
-```
-POST /api/anti-ai/process
-{
-  "text": "需要处理的文本",
-  "ai_provider": "zhipuai"
-}
-```
-
-### 统计接口
-```
-GET /stats
-返回缓存和限流统计信息
-```
+- [x] 所有路由正确注册和导出
+- [x] OpenAPI 文档包含全部接口
+- [x] 前后端联调正常
+- [x] SSE 进度推送正常
+- [x] 文件上传功能正常
+- [x] 用户认证功能正常
+- [x] Docker 配置正确
 
 ## 许可证
 
