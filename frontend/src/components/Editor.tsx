@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { polishText, antiAiProcess, PolishResult, AntiAIResult, PolishStyle } from '../services/api';
-import { useApi } from '../hooks/useApi';
 
 interface EditorProps {
   onResult: (result: PolishResult | AntiAIResult) => void;
@@ -11,48 +10,60 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
   const [mode, setMode] = useState<'polish' | 'anti-ai'>('polish');
   const [style, setStyle] = useState<PolishStyle>('academic');
   const [aiProvider, setAiProvider] = useState('zhipuai');
-  const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('');
+  const [processedChunks, setProcessedChunks] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
 
-  const { isLoading, error, execute } = useApi(
-    mode === 'polish'
-      ? () => polishText(text, style, aiProvider)
-      : () => antiAiProcess(text, aiProvider),
-    {
-      retries: 3,
-      retryDelay: 1000,
-    }
-  );
+  const textChunks = useMemo(() => {
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim());
+    return paragraphs.length || (text.trim() ? 1 : 0);
+  }, [text]);
+
+  const progress = totalChunks > 0 ? Math.round((processedChunks / totalChunks) * 100) : 0;
 
   const handleProcess = async () => {
     if (!text.trim()) return;
 
-    setProgress(10);
+    setIsLoading(true);
+    setError(null);
+    setProcessedChunks(0);
+    setTotalChunks(textChunks);
     setStatusText('正在连接AI服务...');
 
     const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 2000);
+      setStatusText(mode === 'polish' ? '正在并行润色处理...' : '正在进行去AI化处理...');
+    }, 500);
 
-    setStatusText(mode === 'polish' ? '正在进行润色处理...' : '正在进行去AI化处理...');
+    try {
+      let result;
+      if (mode === 'polish') {
+        result = await polishText(text, style, aiProvider);
+      } else {
+        result = await antiAiProcess(text, aiProvider);
+      }
 
-    const result = await execute();
-
-    clearInterval(progressInterval);
-
-    if (result) {
-      setProgress(100);
+      setProcessedChunks(totalChunks);
       setStatusText('处理完成!');
       onResult(result);
-    } else {
-      setProgress(0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '处理失败');
       setStatusText('处理失败');
+    } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setIsLoading(false);
+        setProgress(0);
+        setStatusText('');
+        setProcessedChunks(0);
+        setTotalChunks(0);
+      }, 2000);
     }
+  };
 
-    setTimeout(() => {
-      setProgress(0);
-      setStatusText('');
-    }, 2000);
+  const setProgress = (value: number) => {
+    setProcessedChunks(Math.round((value / 100) * totalChunks));
   };
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -105,35 +116,42 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="请粘贴需要处理的论文文本..."
+          placeholder="请粘贴需要处理的论文文本...&#10;&#10;支持自动分段并行处理，大文本会按段落拆分同时处理，速度更快！"
           disabled={isLoading}
           className="w-full h-64 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-50 resize-none"
         />
         <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-          {charCount} 字符 | {wordCount} 词
+          {charCount} 字符 | {wordCount} 词 | {textChunks} 段
         </div>
       </div>
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error.message}
+          {error}
         </div>
       )}
 
       {isLoading && (
         <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
-            <span className="text-sm font-medium text-blue-700">{statusText}</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <span className="text-sm font-medium text-blue-700">{statusText}</span>
+            </div>
+            {totalChunks > 1 && (
+              <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                并行处理 {totalChunks} 段
+              </span>
+            )}
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>处理进度</span>
+            <span>{totalChunks > 1 ? `已处理 ${processedChunks}/${totalChunks} 段` : '处理进度'}</span>
             <span>{progress}%</span>
           </div>
         </div>

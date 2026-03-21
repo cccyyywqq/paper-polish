@@ -3,7 +3,7 @@ title Paper Polish Tool
 color 0A
 
 echo ========================================
-echo       Paper Polish Tool
+echo       Paper Polish Tool - Optimized
 echo ========================================
 echo.
 
@@ -34,16 +34,27 @@ call npm install --silent
 echo Done.
 
 echo.
-echo Starting services...
-start "Backend" cmd /k "cd /d "%~dp0backend" && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
-timeout /t 3 /nobreak >nul
+echo ========================================
+echo   Starting services with optimizations:
+echo   - Text splitting & parallel processing
+echo   - LRU cache for repeated requests
+echo   - Rate limiting enabled
+echo ========================================
+echo.
+
+echo Starting backend (4 workers)...
+start "Backend" cmd /k "cd /d "%~dp0backend" && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+timeout /t 5 /nobreak >nul
+
+echo Starting frontend...
 start "Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
 echo.
 echo ========================================
-echo   Backend: http://localhost:8000
+echo   Backend: http://localhost:8000 (4 workers)
 echo   Frontend: http://localhost:3000
 echo   API Docs: http://localhost:8000/docs
+echo   Stats: http://localhost:8000/stats
 echo ========================================
 echo.
 
