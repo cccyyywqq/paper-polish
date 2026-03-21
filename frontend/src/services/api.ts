@@ -8,6 +8,14 @@ const api = axios.create({
   timeout: 60000,
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
@@ -45,9 +53,20 @@ export interface AntiAIResult {
   message: string;
 }
 
-export interface ApiError {
-  error: string;
-  retry_after?: number;
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  created_at: string;
+}
+
+export interface HistoryItem {
+  id: number;
+  original_text: string;
+  polished_text: string;
+  operation_type: string;
+  style?: string;
+  created_at: string;
 }
 
 export async function polishText(
@@ -89,5 +108,49 @@ export async function batchPolish(
     style,
     ai_provider: aiProvider,
   });
+  return response.data;
+}
+
+export async function register(username: string, email: string, password: string): Promise<User> {
+  const response = await api.post<User>('/auth/register', { username, email, password });
+  return response.data;
+}
+
+export async function login(username: string, password: string): Promise<{ access_token: string }> {
+  const response = await api.post('/auth/login', { username, password });
+  localStorage.setItem('token', response.data.access_token);
+  return response.data;
+}
+
+export async function getMe(): Promise<User | null> {
+  try {
+    const response = await api.get<User>('/auth/me');
+    return response.data;
+  } catch {
+    return null;
+  }
+}
+
+export function logout() {
+  localStorage.removeItem('token');
+}
+
+export async function saveHistory(
+  originalText: string,
+  polishedText: string,
+  operationType: string,
+  style?: string
+): Promise<HistoryItem> {
+  const response = await api.post<HistoryItem>('/auth/history', {
+    original_text: originalText,
+    polished_text: polishedText,
+    operation_type: operationType,
+    style,
+  });
+  return response.data;
+}
+
+export async function getHistory(): Promise<HistoryItem[]> {
+  const response = await api.get<HistoryItem[]>('/auth/history');
   return response.data;
 }

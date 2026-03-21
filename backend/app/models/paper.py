@@ -18,7 +18,7 @@ class Paper(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    history = relationship("PolishHistory", back_populates="paper")
+    history = relationship("app.models.paper.PolishHistory", back_populates="paper")
 
 
 class PolishHistory(Base):

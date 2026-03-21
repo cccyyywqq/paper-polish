@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import time
 
 from .database import init_db
-from .routers import polish_router, anti_ai_router
+from .routers import polish_router, anti_ai_router, upload_router, auth_router
 from .utils import logger, limiter, cache
 
 
@@ -63,6 +63,8 @@ async def rate_limit_middleware(request: Request, call_next):
 
 app.include_router(polish_router, prefix="/api/polish", tags=["润色"])
 app.include_router(anti_ai_router, prefix="/api/anti-ai", tags=["去AI化"])
+app.include_router(upload_router, prefix="/api/upload", tags=["文件上传"])
+app.include_router(auth_router, prefix="/api/auth", tags=["用户认证"])
 
 
 @app.get("/")

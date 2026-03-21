@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { polishText, antiAiProcess, PolishResult, AntiAIResult, PolishStyle } from '../services/api';
 
 interface EditorProps {
@@ -11,10 +11,13 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
   const [style, setStyle] = useState<PolishStyle>('academic');
   const [aiProvider, setAiProvider] = useState('zhipuai');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('');
   const [processedChunks, setProcessedChunks] = useState(0);
   const [totalChunks, setTotalChunks] = useState(0);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const textChunks = useMemo(() => {
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim());
@@ -22,6 +25,51 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
   }, [text]);
 
   const progress = totalChunks > 0 ? Math.round((processedChunks / totalChunks) * 100) : 0;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['.docx', '.pdf', '.txt'];
+    const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!allowedTypes.includes(fileExt)) {
+      setError(`不支持的文件类型。支持: ${allowedTypes.join(', ')}`);
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    setStatusText('正在解析文件...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload/file', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '文件上传失败');
+      }
+
+      const data = await response.json();
+      setText(data.text);
+      setUploadedFile(data.filename);
+      setStatusText(`已加载: ${data.filename} (${data.char_count} 字符)`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '文件上传失败');
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setStatusText(''), 3000);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleProcess = async () => {
     if (!text.trim()) return;
@@ -54,16 +102,11 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
       clearInterval(progressInterval);
       setTimeout(() => {
         setIsLoading(false);
-        setProgress(0);
         setStatusText('');
         setProcessedChunks(0);
         setTotalChunks(0);
       }, 2000);
     }
-  };
-
-  const setProgress = (value: number) => {
-    setProcessedChunks(Math.round((value / 100) * totalChunks));
   };
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -112,11 +155,43 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
         </div>
       </div>
 
+      {/* 文件上传区域 */}
+      <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition-colors">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".docx,.pdf,.txt"
+          onChange={handleFileUpload}
+          className="hidden"
+          id="file-upload"
+        />
+        <label
+          htmlFor="file-upload"
+          className="flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {isUploading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <span className="text-sm text-blue-600">{statusText}</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <span className="text-sm text-gray-600">
+                {uploadedFile ? `已加载: ${uploadedFile}` : '点击上传文件 (.docx, .pdf, .txt)'}
+              </span>
+            </>
+          )}
+        </label>
+      </div>
+
       <div className="relative">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="请粘贴需要处理的论文文本...&#10;&#10;支持自动分段并行处理，大文本会按段落拆分同时处理，速度更快！"
+          placeholder="请粘贴需要处理的论文文本...&#10;&#10;或上传 .docx / .pdf / .txt 文件&#10;&#10;支持自动分段并行处理，大文本会按段落拆分同时处理！"
           disabled={isLoading}
           className="w-full h-64 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-50 resize-none"
         />
@@ -159,7 +234,10 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
 
       <div className="mt-4 flex justify-between items-center">
         <button
-          onClick={() => setText('')}
+          onClick={() => {
+            setText('');
+            setUploadedFile(null);
+          }}
           disabled={isLoading || !text}
           className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:text-gray-400"
         >

@@ -130,3 +130,20 @@
 2026-03-20 18:04:07,882 - paper_polish - INFO - Creating AI service: zhipuai
 2026-03-20 18:04:08,778 - paper_polish - INFO - Split text into 1 chunks for polishing
 2026-03-20 18:04:17,189 - paper_polish - INFO - POST /api/polish/text - 500 - 9.308s
+2026-03-20 18:05:32,950 - paper_polish - INFO - Starting application...
+2026-03-20 18:05:32,953 - paper_polish - INFO - Database initialized
+2026-03-20 18:05:58,868 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-20 18:05:59,096 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-20 18:05:59,447 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-20 18:06:06,227 - paper_polish - INFO - POST /api/polish/text - 200 - 7.132s
+2026-03-20 18:06:28,600 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-20 18:06:28,903 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-20 18:06:32,793 - paper_polish - INFO - POST /api/polish/text - 200 - 4.194s
+2026-03-20 18:06:41,180 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-20 18:06:41,467 - paper_polish - INFO - Split text into 3 chunks for polishing
+2026-03-20 18:06:58,461 - paper_polish - INFO - POST /api/polish/text - 200 - 17.281s
+2026-03-20 20:20:03,827 - paper_polish - INFO - GET /docs - 200 - 0.000s
+2026-03-20 20:20:04,978 - paper_polish - INFO - GET /openapi.json - 200 - 0.011s
+2026-03-20 20:21:39,727 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-20 20:21:40,057 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-20 20:22:02,464 - paper_polish - INFO - POST /api/polish/text - 200 - 22.738s
