@@ -131,7 +131,7 @@ function App() {
 
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
-          论文润色工具 v2.0.0 | 支持 .docx/.pdf 文件上传 | 并行处理 | 历史记录
+          论文润色工具 v2.1.0 | 支持 .docx/.pdf/.txt 上传 | 并行处理 | 历史记录
         </div>
       </footer>
     </div>

@@ -96,3 +96,32 @@
 2026-03-21 20:30:59,579 - paper_polish - INFO - [LLM][c837096b] Request start: model=glm-4-flash, msgs=2
 2026-03-21 20:31:03,559 - paper_polish - INFO - [LLM][c837096b] Success: latency=3979ms, tokens=155, attempt=1
 2026-03-21 20:31:03,559 - paper_polish - INFO - POST /api/polish/text - 200 - 5.968s
+2026-03-21 20:42:26,102 - paper_polish - INFO - Starting application (env=development)...
+2026-03-21 20:42:26,107 - paper_polish - INFO - Database initialized
+2026-03-21 20:42:33,899 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 20:42:40,705 - paper_polish - INFO - GET /stats - 200 - 0.001s
+2026-03-21 21:22:27,302 - paper_polish - INFO - Starting application (env=development)...
+2026-03-21 21:22:27,307 - paper_polish - INFO - Database initialized
+2026-03-21 21:22:34,159 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 21:23:10,144 - paper_polish - INFO - User registered: smoketest
+2026-03-21 21:23:10,144 - paper_polish - INFO - POST /api/auth/register - 200 - 0.200s
+2026-03-21 21:23:10,566 - paper_polish - INFO - User logged in: smoketest
+2026-03-21 21:23:10,566 - paper_polish - INFO - POST /api/auth/login - 200 - 0.195s
+2026-03-21 21:23:16,949 - paper_polish - INFO - File uploaded: smoke_test.txt, size: 53, extracted: 53 chars
+2026-03-21 21:23:16,950 - paper_polish - INFO - POST /api/upload/file - 200 - 0.002s
+2026-03-21 21:23:34,415 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 21:23:34,415 - paper_polish - INFO - [] Split into 1 chunks for polishing
+2026-03-21 21:23:34,415 - paper_polish - INFO - [LLM][5a44a8e8] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:23:36,118 - paper_polish - INFO - [LLM][5a44a8e8] Success: latency=1702ms, tokens=63, attempt=1
+2026-03-21 21:23:36,119 - paper_polish - INFO - [LLM][415bb7b4] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:23:39,634 - paper_polish - INFO - [LLM][415bb7b4] Success: latency=3515ms, tokens=140, attempt=1
+2026-03-21 21:23:39,634 - paper_polish - INFO - POST /api/polish/text - 200 - 5.220s
+2026-03-21 21:23:48,075 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 21:23:48,075 - paper_polish - INFO - [] Split into 1 chunks for anti-AI
+2026-03-21 21:23:48,075 - paper_polish - INFO - [LLM][72a30672] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:23:49,047 - paper_polish - INFO - [LLM][72a30672] Success: latency=972ms, tokens=109, attempt=1
+2026-03-21 21:23:49,048 - paper_polish - INFO - [LLM][b1c16b14] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:23:49,048 - paper_polish - INFO - [LLM][b1c16b14] Cache hit
+2026-03-21 21:23:49,048 - paper_polish - INFO - POST /api/anti-ai/process - 200 - 0.974s
+2026-03-21 21:24:01,786 - paper_polish - INFO - POST /api/auth/history - 200 - 0.007s
+2026-03-21 21:24:02,010 - paper_polish - INFO - GET /api/auth/history - 200 - 0.003s
