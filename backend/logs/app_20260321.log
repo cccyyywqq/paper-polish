@@ -33,3 +33,6 @@
 2026-03-21 15:32:00,860 - paper_polish - INFO - User logged in: 123
 2026-03-21 15:32:00,861 - paper_polish - INFO - POST /api/auth/login - 200 - 0.002s
 2026-03-21 15:32:00,866 - paper_polish - INFO - GET /api/auth/me - 200 - 0.002s
+2026-03-21 15:59:25,673 - paper_polish - INFO - Starting application...
+2026-03-21 15:59:25,677 - paper_polish - INFO - Database initialized
+2026-03-21 15:59:29,975 - paper_polish - INFO - GET /health - 200 - 0.001s
