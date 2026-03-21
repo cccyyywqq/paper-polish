@@ -33,6 +33,28 @@ class AntiAIResponse(BaseModel):
     message: str = "去AI化处理完成"
 
 
+class BatchPolishRequest(BaseModel):
+    texts: List[str] = Field(..., min_length=1, description="需要批量润色的文本列表")
+    style: str = Field(default="academic", description="润色风格: academic, natural, formal")
+    ai_provider: str = Field(default="zhipuai", description="AI服务提供商: zhipuai, local")
+
+
+class BatchPolishResponse(BaseModel):
+    results: List[str] = []
+    success: bool = True
+    message: str = "批量润色完成"
+
+
+class AnalyzeRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=50000, description="需要分析的文本")
+
+
+class AnalyzeResponse(BaseModel):
+    ai_detection_risk: float
+    naturalness_score: float
+    risk_level: str
+
+
 class PaperCreate(BaseModel):
     title: Optional[str] = None
     original_content: str

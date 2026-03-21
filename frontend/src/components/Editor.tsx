@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { polishText, antiAiProcess, PolishResult, AntiAIResult, PolishStyle } from '../services/api';
+import { polishText, polishTextWithProgress, antiAiProcess, PolishResult, AntiAIResult, PolishStyle, ProgressData } from '../services/api';
 
 interface EditorProps {
   onResult: (result: PolishResult | AntiAIResult) => void;
@@ -35,6 +35,11 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
 
     if (!allowedTypes.includes(fileExt)) {
       setError(`不支持的文件类型。支持: ${allowedTypes.join(', ')}`);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('文件大小不能超过10MB');
       return;
     }
 
@@ -80,15 +85,27 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
     setTotalChunks(textChunks);
     setStatusText('正在连接AI服务...');
 
-    const progressInterval = setInterval(() => {
-      setStatusText(mode === 'polish' ? '正在并行润色处理...' : '正在进行去AI化处理...');
-    }, 500);
-
     try {
       let result;
-      if (mode === 'polish') {
+      if (mode === 'polish' && textChunks > 1) {
+        setStatusText('正在并行润色处理...');
+        result = await polishTextWithProgress(
+          text,
+          style,
+          aiProvider,
+          (data: ProgressData) => {
+            setProcessedChunks(data.progress);
+            setTotalChunks(data.total);
+            if (data.total > 1) {
+              setStatusText(`正在处理第 ${data.progress}/${data.total} 段...`);
+            }
+          }
+        );
+      } else if (mode === 'polish') {
+        setStatusText('正在润色处理...');
         result = await polishText(text, style, aiProvider);
       } else {
+        setStatusText('正在进行去AI化处理...');
         result = await antiAiProcess(text, aiProvider);
       }
 
@@ -99,7 +116,6 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
       setError(err instanceof Error ? err.message : '处理失败');
       setStatusText('处理失败');
     } finally {
-      clearInterval(progressInterval);
       setTimeout(() => {
         setIsLoading(false);
         setStatusText('');
@@ -150,12 +166,11 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="zhipuai">智谱GLM-4</option>
-            <option value="local">本地模型</option>
+            <option value="local">本地模型 (Beta)</option>
           </select>
         </div>
       </div>
 
-      {/* 文件上传区域 */}
       <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition-colors">
         <input
           ref={fileInputRef}

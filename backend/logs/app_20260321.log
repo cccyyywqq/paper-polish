@@ -16,3 +16,20 @@
 2026-03-21 15:18:50,559 - paper_polish - INFO - POST /api/auth/register - 200 - 0.015s
 2026-03-21 15:19:05,935 - paper_polish - INFO - User logged in: newuser2
 2026-03-21 15:19:05,935 - paper_polish - INFO - POST /api/auth/login - 200 - 0.003s
+2026-03-21 15:27:26,218 - paper_polish - INFO - File uploaded: 入党申请书.docx, extracted 3016 characters
+2026-03-21 15:27:26,225 - paper_polish - INFO - POST /api/upload/file - 200 - 0.013s
+2026-03-21 15:27:31,550 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 15:27:31,886 - paper_polish - INFO - Split text into 19 chunks for polishing
+2026-03-21 15:27:48,533 - paper_polish - INFO - POST /api/polish/text - 200 - 16.984s
+2026-03-21 15:29:20,414 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 15:29:20,715 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-21 15:29:45,521 - paper_polish - INFO - POST /api/polish/text - 200 - 25.107s
+2026-03-21 15:30:36,315 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 15:30:36,599 - paper_polish - INFO - Split text into 1 chunks for anti-AI processing
+2026-03-21 15:31:00,094 - paper_polish - INFO - POST /api/anti-ai/process - 200 - 23.779s
+2026-03-21 15:31:34,419 - paper_polish - INFO - POST /api/auth/login - 401 - 0.002s
+2026-03-21 15:32:00,854 - paper_polish - INFO - User registered: 123
+2026-03-21 15:32:00,855 - paper_polish - INFO - POST /api/auth/register - 200 - 0.006s
+2026-03-21 15:32:00,860 - paper_polish - INFO - User logged in: 123
+2026-03-21 15:32:00,861 - paper_polish - INFO - POST /api/auth/login - 200 - 0.002s
+2026-03-21 15:32:00,866 - paper_polish - INFO - GET /api/auth/me - 200 - 0.002s

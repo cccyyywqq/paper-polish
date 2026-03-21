@@ -154,3 +154,53 @@ export async function getHistory(): Promise<HistoryItem[]> {
   const response = await api.get<HistoryItem[]>('/auth/history');
   return response.data;
 }
+
+export interface ProgressData {
+  progress: number;
+  total: number;
+  status: string;
+  results?: string[];
+  result?: PolishResult;
+  error?: string;
+}
+
+export async function polishTextWithProgress(
+  text: string,
+  style: PolishStyle = 'academic',
+  aiProvider: string = 'zhipuai',
+  onProgress?: (data: ProgressData) => void
+): Promise<PolishResult> {
+  const response = await api.post('/polish/text-with-progress', {
+    text,
+    style,
+    ai_provider: aiProvider,
+  });
+
+  const { task_id } = response.data;
+
+  return new Promise((resolve, reject) => {
+    const eventSource = new EventSource(`/api/progress/stream/${task_id}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data: ProgressData = JSON.parse(event.data);
+        onProgress?.(data);
+
+        if (data.status === 'completed' && data.result) {
+          eventSource.close();
+          resolve(data.result);
+        } else if (data.status === 'failed') {
+          eventSource.close();
+          reject(new Error('Processing failed'));
+        }
+      } catch (e) {
+        console.error('Failed to parse progress data:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      reject(new Error('SSE connection failed'));
+    };
+  });
+}

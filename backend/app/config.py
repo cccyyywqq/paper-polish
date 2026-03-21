@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     zhipuai_api_key: str = ""
     zhipuai_model: str = "glm-4-flash"
 
+    # 安全配置
+    secret_key: str = "change-this-to-a-random-secret-key-in-production"
+
     # 应用配置
     max_text_length: int = 10000
     batch_size: int = 5

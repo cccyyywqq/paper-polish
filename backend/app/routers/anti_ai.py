@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..schemas.paper import AntiAIRequest, AntiAIResponse
+from ..schemas.paper import AntiAIRequest, AntiAIResponse, AnalyzeRequest, AnalyzeResponse
 from ..services.anti_ai_service import AntiAIService
 from ..services.ai_service import AIServiceFactory
 
@@ -18,17 +18,17 @@ async def anti_ai_process(request: AntiAIRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/analyze")
-async def analyze_ai_risk(text: str):
+@router.post("/analyze", response_model=AnalyzeResponse)
+async def analyze_ai_risk(request: AnalyzeRequest):
     try:
         anti_ai_service = AntiAIService(AIServiceFactory.create_service("zhipuai"))
-        risk = anti_ai_service._estimate_ai_risk(text)
-        naturalness = anti_ai_service._calculate_naturalness(text)
+        risk = anti_ai_service._estimate_ai_risk(request.text)
+        naturalness = anti_ai_service._calculate_naturalness(request.text)
 
-        return {
-            "ai_detection_risk": risk,
-            "naturalness_score": naturalness,
-            "risk_level": "high" if risk > 60 else "medium" if risk > 30 else "low",
-        }
+        return AnalyzeResponse(
+            ai_detection_risk=risk,
+            naturalness_score=naturalness,
+            risk_level="high" if risk > 60 else "medium" if risk > 30 else "low",
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
