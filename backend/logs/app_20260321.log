@@ -81,3 +81,8 @@
 2026-03-21 17:14:47,411 - paper_polish - INFO - User logged in: bcryptuser
 2026-03-21 17:14:47,411 - paper_polish - INFO - POST /api/auth/login - 200 - 0.193s
 2026-03-21 17:15:03,188 - paper_polish - INFO - GET /api/auth/me - 401 - 0.001s
+2026-03-21 18:54:04,653 - paper_polish - INFO - Starting application...
+2026-03-21 18:54:04,657 - paper_polish - INFO - Database initialized
+2026-03-21 18:54:10,779 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 18:54:25,805 - paper_polish - INFO - File uploaded: test.txt, size: 20, extracted: 20 chars
+2026-03-21 18:54:25,805 - paper_polish - INFO - POST /api/upload/file - 200 - 0.002s

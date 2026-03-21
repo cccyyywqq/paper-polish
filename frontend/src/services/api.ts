@@ -231,6 +231,14 @@ export async function uploadFile(file: File): Promise<UploadResult> {
   return response.data;
 }
 
+export async function cleanupTask(taskId: string): Promise<void> {
+  try {
+    await api.delete(`/progress/cleanup/${taskId}`);
+  } catch (e) {
+    console.warn('Failed to cleanup task:', e);
+  }
+}
+
 export async function polishTextWithProgress(
   text: string,
   style: PolishStyle = 'academic',
@@ -248,6 +256,10 @@ export async function polishTextWithProgress(
   return new Promise((resolve, reject) => {
     const eventSource = new EventSource(`/api/progress/stream/${task_id}`);
 
+    const cleanup = () => {
+      cleanupTask(task_id);
+    };
+
     eventSource.onmessage = (event) => {
       try {
         const data: ProgressData = JSON.parse(event.data);
@@ -255,9 +267,11 @@ export async function polishTextWithProgress(
 
         if (data.status === 'completed' && data.result) {
           eventSource.close();
+          cleanup();
           resolve(data.result);
         } else if (data.status === 'failed') {
           eventSource.close();
+          cleanup();
           reject(new Error(data.error || '处理失败'));
         }
       } catch (e) {
@@ -267,6 +281,7 @@ export async function polishTextWithProgress(
 
     eventSource.onerror = () => {
       eventSource.close();
+      cleanup();
       reject(new Error('进度连接失败'));
     };
   });
