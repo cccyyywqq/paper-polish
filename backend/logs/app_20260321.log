@@ -9,3 +9,10 @@
 2026-03-21 15:15:49,475 - paper_polish - INFO - Starting application...
 2026-03-21 15:15:49,480 - paper_polish - INFO - Database initialized
 2026-03-21 15:15:52,630 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 15:18:36,493 - paper_polish - INFO - Starting application...
+2026-03-21 15:18:36,500 - paper_polish - INFO - Database initialized
+2026-03-21 15:18:42,312 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 15:18:50,559 - paper_polish - INFO - User registered: newuser2
+2026-03-21 15:18:50,559 - paper_polish - INFO - POST /api/auth/register - 200 - 0.015s
+2026-03-21 15:19:05,935 - paper_polish - INFO - User logged in: newuser2
+2026-03-21 15:19:05,935 - paper_polish - INFO - POST /api/auth/login - 200 - 0.003s
