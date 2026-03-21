@@ -1,18 +1,26 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import time
 
+from .config import get_settings
 from .database import init_db
 from .routers import polish_router, anti_ai_router, upload_router, auth_router, progress_router
 from .utils import logger, limiter, cache
 
+settings = get_settings()
+
+app_start_time = time.time()
+request_count = 0
+error_count = 0
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting application...")
+    logger.info(f"Starting application (env={settings.environment})...")
     await init_db()
     logger.info("Database initialized")
     yield
@@ -23,20 +31,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="论文润色工具",
     description="AI驱动的论文润色与去AI化处理工具",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:3001"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-def error_response(status_code: int, message: str, error_code: str = None, details: any = None):
+def error_response(status_code: int, message: str, error_code: str = None, details=None):
     return JSONResponse(
         status_code=status_code,
         content={
@@ -77,6 +85,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    global error_count
+    error_count += 1
     logger.error(f"Unhandled exception: {exc}")
     return error_response(
         status_code=500,
@@ -87,6 +97,9 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
+    global request_count
+    request_count += 1
+
     client_ip = request.client.host
     path = request.url.path
 
@@ -104,7 +117,8 @@ async def rate_limit_middleware(request: Request, call_next):
     process_time = time.time() - start_time
 
     response.headers["X-Process-Time"] = str(process_time)
-    logger.info(f"{request.method} {path} - {response.status_code} - {process_time:.3f}s")
+    if settings.debug:
+        logger.info(f"{request.method} {path} - {response.status_code} - {process_time:.3f}s")
 
     return response
 
@@ -118,20 +132,51 @@ app.include_router(progress_router, prefix="/api/progress", tags=["进度"])
 
 @app.get("/")
 async def root():
-    return {"message": "论文润色工具API", "version": "2.0.0"}
+    return {
+        "name": "论文润色工具",
+        "version": "2.1.0",
+        "environment": settings.environment,
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    checks = {
+        "api": "ok",
+        "database": "ok",
+        "llm": "unknown",
+    }
+
+    try:
+        from .services.llm_client import llm_client
+        if llm_client._client is not None:
+            checks["llm"] = "initialized"
+        else:
+            checks["llm"] = "not_initialized"
+    except Exception as e:
+        checks["llm"] = f"error: {str(e)}"
+
+    status = "healthy" if all(v in ["ok", "initialized", "unknown"] for v in checks.values()) else "degraded"
+
+    return {
+        "status": status,
+        "checks": checks,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
 
 
 @app.get("/stats")
 async def get_stats():
+    uptime = time.time() - app_start_time
     return {
+        "uptime_seconds": round(uptime, 2),
+        "requests_total": request_count,
+        "errors_total": error_count,
         "cache": cache.stats(),
         "rate_limiter": {
             "max_requests": limiter.max_requests,
             "window": limiter.window,
         },
+        "environment": settings.environment,
     }
