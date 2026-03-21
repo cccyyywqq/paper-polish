@@ -86,3 +86,13 @@
 2026-03-21 18:54:10,779 - paper_polish - INFO - GET /health - 200 - 0.001s
 2026-03-21 18:54:25,805 - paper_polish - INFO - File uploaded: test.txt, size: 20, extracted: 20 chars
 2026-03-21 18:54:25,805 - paper_polish - INFO - POST /api/upload/file - 200 - 0.002s
+2026-03-21 20:30:30,466 - paper_polish - INFO - Starting application...
+2026-03-21 20:30:30,472 - paper_polish - INFO - Database initialized
+2026-03-21 20:30:47,777 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 20:30:57,592 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 20:30:57,593 - paper_polish - INFO - [] Split into 1 chunks for polishing
+2026-03-21 20:30:57,593 - paper_polish - INFO - [LLM][995996f5] Request start: model=glm-4-flash, msgs=2
+2026-03-21 20:30:59,579 - paper_polish - INFO - [LLM][995996f5] Success: latency=1986ms, tokens=53, attempt=1
+2026-03-21 20:30:59,579 - paper_polish - INFO - [LLM][c837096b] Request start: model=glm-4-flash, msgs=2
+2026-03-21 20:31:03,559 - paper_polish - INFO - [LLM][c837096b] Success: latency=3979ms, tokens=155, attempt=1
+2026-03-21 20:31:03,559 - paper_polish - INFO - POST /api/polish/text - 200 - 5.968s

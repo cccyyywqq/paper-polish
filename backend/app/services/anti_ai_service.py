@@ -7,8 +7,8 @@ class AntiAIService:
     def __init__(self, ai_service: AIService):
         self.ai_service = ai_service
 
-    async def process_text(self, text: str) -> Dict:
-        processed = await self.ai_service.anti_ai_detection(text)
+    async def process_text(self, text: str, task_id: str = "") -> Dict:
+        processed = await self.ai_service.anti_ai_detection(text, task_id)
         suggestions = await self.ai_service.get_suggestions(text)
         naturalness = self._calculate_naturalness(processed)
         ai_risk = self._estimate_ai_risk(processed)

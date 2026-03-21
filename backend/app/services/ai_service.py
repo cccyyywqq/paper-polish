@@ -1,22 +1,20 @@
 from abc import ABC, abstractmethod
 from typing import List
 import asyncio
-import os
-import httpx
-from zhipuai import ZhipuAI
-from ..config import get_settings
-from ..utils import logger, retry, split_text, merge_results
-
-settings = get_settings()
+import uuid
+from .llm_client import invoke_llm, LLMResponse
+from ..utils import logger, split_text, merge_results
 
 
 class AIService(ABC):
     @abstractmethod
-    async def polish_text(self, text: str, style: str = "academic") -> str:
+    async def polish_text(
+        self, text: str, style: str = "academic", task_id: str = ""
+    ) -> str:
         pass
 
     @abstractmethod
-    async def anti_ai_detection(self, text: str) -> str:
+    async def anti_ai_detection(self, text: str, task_id: str = "") -> str:
         pass
 
     @abstractmethod
@@ -24,154 +22,150 @@ class AIService(ABC):
         pass
 
 
-def create_zhipuai_client():
-    api_key = settings.zhipuai_api_key
-    if not api_key:
-        raise ValueError("ZHIPUAI_API_KEY is not configured")
+PROMPTS = {
+    "academic": "你是一位专业的学术论文编辑。请将以下文本润色为严谨的学术论文风格，保持原意但提升表达质量和专业性：",
+    "natural": "你是一位优秀的写作助手。请将以下文本润色得更自然流畅，增加可读性，同时保持学术性：",
+    "formal": "你是一位学术写作专家。请将以下文本润色为正式的学术风格，使用专业术语和规范表达：",
+}
 
-    http_client = httpx.Client(transport=httpx.HTTPTransport())
-    return ZhipuAI(api_key=api_key, http_client=http_client)
+ANTI_AI_PROMPT = """请将以下文本改写，使其：
+1. 不被AI检测工具识别为AI生成
+2. 保持学术性和准确性
+3. 增加个人表达和独特视角
+4. 调整句式结构，避免AI常见模式
+5. 使用多样化的句式开头
+6. 保持逻辑连贯性和专业性"""
 
 
 class ZhipuAIService(AIService):
-    def __init__(self):
-        self.client = create_zhipuai_client()
-        self.model = settings.zhipuai_model
+    MAX_CONCURRENT = 3
 
-    def _select_model(self, text: str) -> str:
-        if len(text) > 5000:
-            return "glm-4"
-        return self.model
-
-    def _polish_chunk(self, text: str, style: str = "academic") -> str:
-        prompts = {
-            "academic": "你是一位专业的学术论文编辑。请将以下文本润色为严谨的学术论文风格，保持原意但提升表达质量和专业性：",
-            "natural": "你是一位优秀的写作助手。请将以下文本润色得更自然流畅，增加可读性，同时保持学术性：",
-            "formal": "你是一位学术写作专家。请将以下文本润色为正式的学术风格，使用专业术语和规范表达：",
-        }
-
-        model = self._select_model(text)
-
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": prompts.get(style, prompts["academic"])},
-                {"role": "user", "content": text},
-            ],
-            temperature=0.7,
-            max_tokens=4000,
+    async def _call_llm(
+        self,
+        text: str,
+        system_prompt: str,
+        temperature: float = 0.7,
+        request_id: str = "",
+        task_id: str = "",
+    ) -> str:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text},
+        ]
+        response = await invoke_llm(
+            messages=messages,
+            temperature=temperature,
+            request_id=request_id,
+            task_id=task_id,
         )
+        return response.content
 
-        return response.choices[0].message.content
-
-    def _anti_ai_chunk(self, text: str) -> str:
-        model = self._select_model(text)
-
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": """请将以下文本改写，使其不被AI检测工具识别，同时保持学术性和准确性：""",
-                },
-                {"role": "user", "content": text},
-            ],
-            temperature=0.8,
-            max_tokens=4000,
-        )
-
-        return response.choices[0].message.content
-
-    async def polish_text(self, text: str, style: str = "academic") -> str:
+    async def polish_text(
+        self, text: str, style: str = "academic", task_id: str = ""
+    ) -> str:
         chunks = split_text(text, max_chunk_length=1500)
-        logger.info(f"Split text into {len(chunks)} chunks for polishing")
+        logger.info(f"[{task_id}] Split into {len(chunks)} chunks for polishing")
 
         if len(chunks) == 1:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._polish_chunk, text, style)
-            return result
+            request_id = str(uuid.uuid4())[:8]
+            return await self._call_llm(
+                text,
+                PROMPTS.get(style, PROMPTS["academic"]),
+                temperature=0.7,
+                request_id=request_id,
+                task_id=task_id,
+            )
 
-        loop = asyncio.get_event_loop()
-        tasks = [
-            loop.run_in_executor(None, self._polish_chunk, chunk, style)
-            for chunk in chunks
-        ]
+        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        async def process_chunk(chunk: str, index: int) -> tuple[int, str]:
+            async with semaphore:
+                request_id = f"{task_id}-{index}"
+                try:
+                    result = await self._call_llm(
+                        chunk,
+                        PROMPTS.get(style, PROMPTS["academic"]),
+                        temperature=0.7,
+                        request_id=request_id,
+                        task_id=task_id,
+                    )
+                    return index, result
+                except Exception as e:
+                    logger.error(f"[{task_id}] Chunk {index} failed: {e}")
+                    return index, chunk
 
-        final_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"Chunk {i} failed: {result}")
-                final_results.append(chunks[i])
-            else:
-                final_results.append(result)
+        tasks = [process_chunk(chunk, i) for i, chunk in enumerate(chunks)]
+        results = await asyncio.gather(*tasks)
+
+        results.sort(key=lambda x: x[0])
+        final_results = [r[1] for r in results]
 
         return merge_results(final_results, chunks)
 
-    async def anti_ai_detection(self, text: str) -> str:
+    async def anti_ai_detection(self, text: str, task_id: str = "") -> str:
         chunks = split_text(text, max_chunk_length=1500)
-        logger.info(f"Split text into {len(chunks)} chunks for anti-AI processing")
+        logger.info(f"[{task_id}] Split into {len(chunks)} chunks for anti-AI")
 
         if len(chunks) == 1:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._anti_ai_chunk, text)
-            return result
+            request_id = str(uuid.uuid4())[:8]
+            return await self._call_llm(
+                text,
+                ANTI_AI_PROMPT,
+                temperature=0.8,
+                request_id=request_id,
+                task_id=task_id,
+            )
 
-        loop = asyncio.get_event_loop()
-        tasks = [
-            loop.run_in_executor(None, self._anti_ai_chunk, chunk)
-            for chunk in chunks
-        ]
+        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        async def process_chunk(chunk: str, index: int) -> tuple[int, str]:
+            async with semaphore:
+                request_id = f"{task_id}-{index}"
+                try:
+                    result = await self._call_llm(
+                        chunk,
+                        ANTI_AI_PROMPT,
+                        temperature=0.8,
+                        request_id=request_id,
+                        task_id=task_id,
+                    )
+                    return index, result
+                except Exception as e:
+                    logger.error(f"[{task_id}] Chunk {index} failed: {e}")
+                    return index, chunk
 
-        final_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"Chunk {i} failed: {result}")
-                final_results.append(chunks[i])
-            else:
-                final_results.append(result)
+        tasks = [process_chunk(chunk, i) for i, chunk in enumerate(chunks)]
+        results = await asyncio.gather(*tasks)
+
+        results.sort(key=lambda x: x[0])
+        final_results = [r[1] for r in results]
 
         return merge_results(final_results, chunks)
 
     async def get_suggestions(self, text: str) -> List[str]:
-        loop = asyncio.get_event_loop()
-
-        def _get_suggestions():
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """请分析以下学术文本，提供3-5条具体的改进建议，每条建议不超过50字：""",
-                    },
-                    {"role": "user", "content": text[:2000]},
-                ],
-                temperature=0.5,
-                max_tokens=1000,
-            )
-            content = response.choices[0].message.content
-            return [s.strip() for s in content.split("\n") if s.strip()][:5]
-
-        return await loop.run_in_executor(None, _get_suggestions)
+        request_id = str(uuid.uuid4())[:8]
+        response = await self._call_llm(
+            text[:2000],
+            "请分析以下学术文本，提供3-5条具体的改进建议，每条建议不超过50字，以列表形式返回：",
+            temperature=0.5,
+            request_id=request_id,
+        )
+        return [s.strip() for s in response.split("\n") if s.strip()][:5]
 
 
 class LocalModelService(AIService):
-    def __init__(self):
-        self.available = False
+    available = False
 
-    async def polish_text(self, text: str, style: str = "academic") -> str:
-        logger.warning("Local model not available")
-        return text
+    async def polish_text(
+        self, text: str, style: str = "academic", task_id: str = ""
+    ) -> str:
+        raise NotImplementedError("本地模型暂未配置，请使用智谱GLM-4")
 
-    async def anti_ai_detection(self, text: str) -> str:
-        logger.warning("Local model not available")
-        return text
+    async def anti_ai_detection(self, text: str, task_id: str = "") -> str:
+        raise NotImplementedError("本地模型暂未配置，请使用智谱GLM-4")
 
     async def get_suggestions(self, text: str) -> List[str]:
-        return ["本地模型暂未配置"]
+        raise NotImplementedError("本地模型暂未配置，请使用智谱GLM-4")
 
 
 class AIServiceFactory:

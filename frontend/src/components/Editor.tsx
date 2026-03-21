@@ -153,7 +153,7 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="zhipuai">智谱GLM-4</option>
-            <option value="local">本地模型 (Beta)</option>
+            <option value="local" disabled>本地模型 (暂未开放)</option>
           </select>
         </div>
       </div>
