@@ -18,46 +18,81 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 429) {
+  (error: AxiosError<{ message?: string; details?: unknown }>) => {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+
+    if (status === 429) {
       throw new Error('请求过于频繁，请稍后再试');
     }
-    if (error.response?.status === 500) {
+    if (status === 401) {
+      localStorage.removeItem('token');
+      throw new Error('登录已过期，请重新登录');
+    }
+    if (status === 413) {
+      throw new Error('文件大小超过限制');
+    }
+    if (status === 422) {
+      throw new Error(message || '请求参数错误');
+    }
+    if (status === 500) {
       throw new Error('服务器错误，请稍后再试');
     }
     if (error.code === 'ECONNABORTED') {
       throw new Error('请求超时，请检查网络连接');
     }
-    throw error;
+    throw new Error(message || '请求失败');
   }
 );
 
 export type PolishStyle = 'academic' | 'natural' | 'formal';
 
-export interface PolishResult {
-  original: string;
-  polished: string;
-  grammar_corrected?: string;
-  suggestions: string[];
+export interface ApiResponse {
   success: boolean;
   message: string;
 }
 
-export interface AntiAIResult {
+export interface PolishResult extends ApiResponse {
+  original: string;
+  polished: string;
+  grammar_corrected?: string;
+  suggestions: string[];
+}
+
+export interface AntiAIResult extends ApiResponse {
   original: string;
   processed: string;
   naturalness_score: number;
   ai_detection_risk: number;
   suggestions: string[];
-  success: boolean;
-  message: string;
 }
 
-export interface User {
+export interface AnalyzeResult {
+  ai_detection_risk: number;
+  naturalness_score: number;
+  risk_level: 'low' | 'medium' | 'high';
+}
+
+export interface BatchPolishResult extends ApiResponse {
+  results: string[];
+}
+
+export interface User extends ApiResponse {
   id: number;
   username: string;
   email: string;
   created_at: string;
+}
+
+export interface TokenResult extends ApiResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UploadResult extends ApiResponse {
+  filename: string;
+  text: string;
+  char_count: number;
 }
 
 export interface HistoryItem {
@@ -67,6 +102,24 @@ export interface HistoryItem {
   operation_type: string;
   style?: string;
   created_at: string;
+}
+
+export interface HistoryListResult extends ApiResponse {
+  data: HistoryItem[];
+}
+
+export interface ProgressData {
+  progress: number;
+  total: number;
+  status: string;
+  results?: string[];
+  result?: PolishResult;
+  error?: string;
+}
+
+export interface TaskResult {
+  task_id: string;
+  message: string;
 }
 
 export async function polishText(
@@ -93,8 +146,8 @@ export async function antiAiProcess(
   return response.data;
 }
 
-export async function analyzeAiRisk(text: string) {
-  const response = await api.post('/anti-ai/analyze', { text });
+export async function analyzeAiRisk(text: string): Promise<AnalyzeResult> {
+  const response = await api.post<AnalyzeResult>('/anti-ai/analyze', { text });
   return response.data;
 }
 
@@ -102,8 +155,8 @@ export async function batchPolish(
   texts: string[],
   style: PolishStyle = 'academic',
   aiProvider: string = 'zhipuai'
-) {
-  const response = await api.post('/polish/batch', {
+): Promise<BatchPolishResult> {
+  const response = await api.post<BatchPolishResult>('/polish/batch', {
     texts,
     style,
     ai_provider: aiProvider,
@@ -111,13 +164,27 @@ export async function batchPolish(
   return response.data;
 }
 
-export async function register(username: string, email: string, password: string): Promise<User> {
-  const response = await api.post<User>('/auth/register', { username, email, password });
+export async function register(
+  username: string,
+  email: string,
+  password: string
+): Promise<User> {
+  const response = await api.post<User>('/auth/register', {
+    username,
+    email,
+    password,
+  });
   return response.data;
 }
 
-export async function login(username: string, password: string): Promise<{ access_token: string }> {
-  const response = await api.post('/auth/login', { username, password });
+export async function login(
+  username: string,
+  password: string
+): Promise<TokenResult> {
+  const response = await api.post<TokenResult>('/auth/login', {
+    username,
+    password,
+  });
   localStorage.setItem('token', response.data.access_token);
   return response.data;
 }
@@ -150,18 +217,18 @@ export async function saveHistory(
   return response.data;
 }
 
-export async function getHistory(): Promise<HistoryItem[]> {
-  const response = await api.get<HistoryItem[]>('/auth/history');
+export async function getHistory(): Promise<HistoryListResult> {
+  const response = await api.get<HistoryListResult>('/auth/history');
   return response.data;
 }
 
-export interface ProgressData {
-  progress: number;
-  total: number;
-  status: string;
-  results?: string[];
-  result?: PolishResult;
-  error?: string;
+export async function uploadFile(file: File): Promise<UploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post<UploadResult>('/upload/file', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
 }
 
 export async function polishTextWithProgress(
@@ -170,7 +237,7 @@ export async function polishTextWithProgress(
   aiProvider: string = 'zhipuai',
   onProgress?: (data: ProgressData) => void
 ): Promise<PolishResult> {
-  const response = await api.post('/polish/text-with-progress', {
+  const response = await api.post<TaskResult>('/polish/text-with-progress', {
     text,
     style,
     ai_provider: aiProvider,
@@ -191,7 +258,7 @@ export async function polishTextWithProgress(
           resolve(data.result);
         } else if (data.status === 'failed') {
           eventSource.close();
-          reject(new Error('Processing failed'));
+          reject(new Error(data.error || '处理失败'));
         }
       } catch (e) {
         console.error('Failed to parse progress data:', e);
@@ -200,7 +267,7 @@ export async function polishTextWithProgress(
 
     eventSource.onerror = () => {
       eventSource.close();
-      reject(new Error('SSE connection failed'));
+      reject(new Error('进度连接失败'));
     };
   });
 }

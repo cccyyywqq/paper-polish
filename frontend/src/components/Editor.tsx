@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { polishText, polishTextWithProgress, antiAiProcess, PolishResult, AntiAIResult, PolishStyle, ProgressData } from '../services/api';
+import { polishText, polishTextWithProgress, antiAiProcess, uploadFile, PolishResult, AntiAIResult, PolishStyle, ProgressData } from '../services/api';
 
 interface EditorProps {
   onResult: (result: PolishResult | AntiAIResult) => void;
@@ -48,20 +48,7 @@ export const Editor: React.FC<EditorProps> = ({ onResult }) => {
     setStatusText('正在解析文件...');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload/file', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '文件上传失败');
-      }
-
-      const data = await response.json();
+      const data = await uploadFile(file);
       setText(data.text);
       setUploadedFile(data.filename);
       setStatusText(`已加载: ${data.filename} (${data.char_count} 字符)`);

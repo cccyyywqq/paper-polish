@@ -46,3 +46,11 @@
 2026-03-21 16:44:28,762 - paper_polish - INFO - Starting application...
 2026-03-21 16:44:28,766 - paper_polish - INFO - Database initialized
 2026-03-21 16:44:28,767 - paper_polish - INFO - Shutting down application...
+2026-03-21 16:45:04,030 - paper_polish - INFO - Starting application...
+2026-03-21 16:45:04,035 - paper_polish - INFO - Database initialized
+2026-03-21 16:45:25,700 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 16:45:31,537 - paper_polish - INFO - GET /openapi.json - 200 - 0.026s
+2026-03-21 16:48:13,412 - paper_polish - INFO - GET /api/health - 404 - 0.000s
+2026-03-21 16:48:41,416 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 16:48:41,755 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-21 16:48:52,948 - paper_polish - INFO - POST /api/polish/text - 200 - 11.533s
