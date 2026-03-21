@@ -54,3 +54,30 @@
 2026-03-21 16:48:41,416 - paper_polish - INFO - Creating AI service: zhipuai
 2026-03-21 16:48:41,755 - paper_polish - INFO - Split text into 1 chunks for polishing
 2026-03-21 16:48:52,948 - paper_polish - INFO - POST /api/polish/text - 200 - 11.533s
+2026-03-21 17:01:09,441 - paper_polish - INFO - Starting application...
+2026-03-21 17:01:09,445 - paper_polish - INFO - Database initialized
+2026-03-21 17:01:18,362 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 17:01:33,174 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 17:01:33,480 - paper_polish - INFO - POST /api/anti-ai/analyze - 200 - 0.307s
+2026-03-21 17:01:39,026 - paper_polish - INFO - POST /api/anti-ai/analyze - 422 - 0.001s
+2026-03-21 17:01:45,142 - paper_polish - INFO - POST /api/auth/login - 401 - 0.010s
+2026-03-21 17:05:25,436 - paper_polish - INFO - GET /api/auth/me - 401 - 0.007s
+2026-03-21 17:05:25,442 - paper_polish - INFO - GET /api/auth/me - 401 - 0.001s
+2026-03-21 17:05:43,565 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 17:05:43,866 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-21 17:06:04,602 - paper_polish - INFO - POST /api/polish/text - 200 - 21.038s
+2026-03-21 17:06:23,673 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 17:06:24,033 - paper_polish - INFO - Split text into 1 chunks for polishing
+2026-03-21 17:06:44,644 - paper_polish - INFO - POST /api/polish/text - 200 - 20.972s
+2026-03-21 17:12:44,809 - paper_polish - INFO - Starting application...
+2026-03-21 17:12:44,814 - paper_polish - INFO - Database initialized
+2026-03-21 17:12:57,780 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 17:13:05,903 - paper_polish - ERROR - Unhandled exception: password cannot be longer than 72 bytes, truncate manually if necessary (e.g. my_password[:72])
+2026-03-21 17:14:22,137 - paper_polish - INFO - Starting application...
+2026-03-21 17:14:22,142 - paper_polish - INFO - Database initialized
+2026-03-21 17:14:36,352 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-21 17:14:36,785 - paper_polish - INFO - User registered: bcryptuser
+2026-03-21 17:14:36,785 - paper_polish - INFO - POST /api/auth/register - 200 - 0.205s
+2026-03-21 17:14:47,411 - paper_polish - INFO - User logged in: bcryptuser
+2026-03-21 17:14:47,411 - paper_polish - INFO - POST /api/auth/login - 200 - 0.193s
+2026-03-21 17:15:03,188 - paper_polish - INFO - GET /api/auth/me - 401 - 0.001s
