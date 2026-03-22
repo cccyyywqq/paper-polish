@@ -15,3 +15,10 @@
 2026-03-22 13:06:42,556 - paper_polish - INFO - [LLM][8cd16dd6] Request start: model=glm-4-flash, msgs=2
 2026-03-22 13:06:42,556 - paper_polish - INFO - [LLM][8cd16dd6] Cache hit
 2026-03-22 13:06:42,558 - paper_polish - INFO - POST /api/anti-ai/process - 200 - 10.367s
+2026-03-22 18:55:54,588 - paper_polish - INFO - Starting application (env=development, debug=True)...
+2026-03-22 18:55:54,593 - paper_polish - INFO - Database initialized
+2026-03-22 18:56:07,247 - paper_polish - INFO - GET /health - 200 - 0.002s
+2026-03-22 18:57:11,942 - paper_polish - INFO - Starting application (env=development, debug=True)...
+2026-03-22 18:57:11,947 - paper_polish - INFO - Database initialized
+2026-03-22 18:57:32,172 - paper_polish - INFO - GET /health - 200 - 0.003s
+2026-03-22 18:57:37,007 - paper_polish - INFO - GET /stats - 200 - 0.001s

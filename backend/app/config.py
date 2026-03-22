@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import List
+import os
 
 
 class Settings(BaseSettings):
@@ -20,8 +21,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 10080  # 7 days
 
-    # CORS 配置
-    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    # CORS 配置 (生产环境必须显式配置)
+    cors_origins: str = ""
 
     # 应用配置
     max_text_length: int = 10000
@@ -38,11 +39,33 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
+        if not self.cors_origins:
+            if self.is_production:
+                return []
+            return ["http://localhost:3000", "http://localhost:5173"]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def is_debug(self) -> bool:
+        if self.is_production:
+            return False
+        return self.debug
+
+    @property
+    def safe_config(self) -> dict:
+        return {
+            "environment": self.environment,
+            "debug": self.is_debug,
+            "cors_origins": self.cors_origins_list,
+            "database_type": self.database_url.split(":")[0],
+            "llm_max_retries": self.llm_max_retries,
+            "llm_timeout": self.llm_timeout,
+            "llm_max_concurrent": self.llm_max_concurrent,
+        }
 
 
 @lru_cache()
