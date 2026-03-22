@@ -3,7 +3,6 @@ import hashlib
 import time
 import uuid
 from typing import Optional, Dict, Any, List
-from functools import lru_cache
 from dataclasses import dataclass, field
 from zhipuai import ZhipuAI
 from ..config import get_settings
@@ -65,13 +64,20 @@ class LLMCache:
         self._cache[key] = {"content": content, "timestamp": time.time()}
         self._access_order.append(key)
 
+    def stats(self) -> Dict:
+        return {
+            "size": len(self._cache),
+            "max_size": self.max_size,
+            "ttl": self.ttl,
+        }
+
 
 class LLMClient:
     def __init__(self):
         self._client: Optional[ZhipuAI] = None
         self._cache = LLMCache(max_size=200, ttl=3600)
-        self._max_retries = 3
-        self._timeout = 60
+        self._max_retries = settings.llm_max_retries
+        self._timeout = settings.llm_timeout
 
     @property
     def client(self) -> ZhipuAI:
@@ -121,14 +127,17 @@ class LLMClient:
                 start_time = time.time()
                 loop = asyncio.get_event_loop()
 
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: self.client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: self.client.chat.completions.create(
+                            model=model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                        ),
                     ),
+                    timeout=self._timeout,
                 )
 
                 latency_ms = int((time.time() - start_time) * 1000)
@@ -158,6 +167,15 @@ class LLMClient:
                     usage=usage,
                     latency_ms=latency_ms,
                 )
+
+            except asyncio.TimeoutError:
+                last_error = Exception(f"请求超时 ({self._timeout}s)")
+                wait_time = 2 ** attempt
+                logger.warning(
+                    f"{log_prefix} Timeout after {self._timeout}s, attempt {attempt + 1}/{self._max_retries}"
+                )
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(wait_time)
 
             except Exception as e:
                 last_error = e

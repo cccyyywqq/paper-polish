@@ -1,0 +1,17 @@
+2026-03-22 13:02:07,416 - paper_polish - INFO - Starting application (env=development)...
+2026-03-22 13:02:07,424 - paper_polish - INFO - Database initialized
+2026-03-22 13:02:17,504 - paper_polish - INFO - GET /health - 200 - 0.001s
+2026-03-22 13:05:51,745 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-22 13:05:51,745 - paper_polish - INFO - [] Split into 1 chunks for polishing
+2026-03-22 13:05:51,745 - paper_polish - INFO - [LLM][8eaef753] Request start: model=glm-4-flash, msgs=2
+2026-03-22 13:06:05,523 - paper_polish - INFO - [LLM][8eaef753] Success: latency=13777ms, tokens=720, attempt=1
+2026-03-22 13:06:05,523 - paper_polish - INFO - [LLM][f01ec574] Request start: model=glm-4-flash, msgs=2
+2026-03-22 13:06:08,421 - paper_polish - INFO - [LLM][f01ec574] Success: latency=2897ms, tokens=441, attempt=1
+2026-03-22 13:06:08,422 - paper_polish - INFO - POST /api/polish/text - 200 - 16.678s
+2026-03-22 13:06:32,191 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-22 13:06:32,191 - paper_polish - INFO - [] Split into 1 chunks for anti-AI
+2026-03-22 13:06:32,192 - paper_polish - INFO - [LLM][8325f5cc] Request start: model=glm-4-flash, msgs=2
+2026-03-22 13:06:42,556 - paper_polish - INFO - [LLM][8325f5cc] Success: latency=10364ms, tokens=758, attempt=1
+2026-03-22 13:06:42,556 - paper_polish - INFO - [LLM][8cd16dd6] Request start: model=glm-4-flash, msgs=2
+2026-03-22 13:06:42,556 - paper_polish - INFO - [LLM][8cd16dd6] Cache hit
+2026-03-22 13:06:42,558 - paper_polish - INFO - POST /api/anti-ai/process - 200 - 10.367s

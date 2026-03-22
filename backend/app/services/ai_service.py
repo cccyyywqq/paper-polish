@@ -3,7 +3,10 @@ from typing import List
 import asyncio
 import uuid
 from .llm_client import invoke_llm, LLMResponse
+from ..config import get_settings
 from ..utils import logger, split_text, merge_results
+
+settings = get_settings()
 
 
 class AIService(ABC):
@@ -38,7 +41,8 @@ ANTI_AI_PROMPT = """请将以下文本改写，使其：
 
 
 class ZhipuAIService(AIService):
-    MAX_CONCURRENT = 3
+    def __init__(self):
+        self.max_concurrent = settings.llm_max_concurrent
 
     async def _call_llm(
         self,
@@ -76,7 +80,7 @@ class ZhipuAIService(AIService):
                 task_id=task_id,
             )
 
-        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
+        semaphore = asyncio.Semaphore(self.max_concurrent)
 
         async def process_chunk(chunk: str, index: int) -> tuple[int, str]:
             async with semaphore:
@@ -116,7 +120,7 @@ class ZhipuAIService(AIService):
                 task_id=task_id,
             )
 
-        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
+        semaphore = asyncio.Semaphore(self.max_concurrent)
 
         async def process_chunk(chunk: str, index: int) -> tuple[int, str]:
             async with semaphore:
