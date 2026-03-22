@@ -125,3 +125,11 @@
 2026-03-21 21:23:49,048 - paper_polish - INFO - POST /api/anti-ai/process - 200 - 0.974s
 2026-03-21 21:24:01,786 - paper_polish - INFO - POST /api/auth/history - 200 - 0.007s
 2026-03-21 21:24:02,010 - paper_polish - INFO - GET /api/auth/history - 200 - 0.003s
+2026-03-21 21:40:47,154 - paper_polish - ERROR - Unhandled exception: Invalid salt
+2026-03-21 21:41:08,615 - paper_polish - INFO - Creating AI service: zhipuai
+2026-03-21 21:41:08,615 - paper_polish - INFO - [] Split into 1 chunks for polishing
+2026-03-21 21:41:08,615 - paper_polish - INFO - [LLM][aee1371d] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:41:23,847 - paper_polish - INFO - [LLM][aee1371d] Success: latency=15231ms, tokens=884, attempt=1
+2026-03-21 21:41:23,848 - paper_polish - INFO - [LLM][69a482be] Request start: model=glm-4-flash, msgs=2
+2026-03-21 21:41:28,247 - paper_polish - INFO - [LLM][69a482be] Success: latency=4399ms, tokens=525, attempt=1
+2026-03-21 21:41:28,248 - paper_polish - INFO - POST /api/polish/text - 200 - 19.634s

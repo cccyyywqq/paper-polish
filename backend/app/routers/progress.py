@@ -36,12 +36,15 @@ class CleanupResponse(BaseModel):
 
 def create_task() -> str:
     task_id = str(uuid.uuid4())
+    now = time.time()
     progress_store[task_id] = {
         "progress": 0,
         "total": 0,
         "status": "pending",
         "results": [],
-        "created_at": time.time(),
+        "error": None,
+        "created_at": now,
+        "updated_at": now,
     }
     _ensure_cleanup_task()
     return task_id
@@ -63,13 +66,29 @@ def update_progress(
             progress_store[task_id]["results"].append(result)
 
 
+def set_task_error(task_id: str, error: str):
+    if task_id in progress_store:
+        progress_store[task_id]["status"] = "failed"
+        progress_store[task_id]["error"] = error
+        progress_store[task_id]["updated_at"] = time.time()
+        logger.error(f"Task {task_id} failed: {error}")
+
+
+def set_task_result(task_id: str, result: Any):
+    if task_id in progress_store:
+        progress_store[task_id]["status"] = "completed"
+        progress_store[task_id]["result"] = result
+        progress_store[task_id]["updated_at"] = time.time()
+
+
 def cleanup_expired_tasks():
     now = time.time()
-    expired = [
-        task_id
-        for task_id, data in progress_store.items()
-        if now - data.get("created_at", now) > TASK_TTL
-    ]
+    expired = []
+    for task_id, data in progress_store.items():
+        updated_at = data.get("updated_at", data.get("created_at", now))
+        if now - updated_at > TASK_TTL:
+            expired.append(task_id)
+    
     for task_id in expired:
         del progress_store[task_id]
         logger.info(f"Cleaned up expired task: {task_id}")
