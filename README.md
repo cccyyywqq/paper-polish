@@ -332,7 +332,7 @@ curl http://localhost:8000/health
 - 去AI化处理
 - 智谱GLM-4 集成
 
----
+---推广https://vsllm.com
 
 ## 许可证
 
